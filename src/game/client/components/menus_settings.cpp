@@ -351,7 +351,6 @@ void CMenus::SetNeedSendInfo()
 void CMenus::RenderSettingsPlayer(CUIRect MainView)
 {
 	CUIRect Button, Label, Dummy;
-	MainView.HSplitTop(10.0f, 0, &MainView);
 
 	char *pName = g_Config.m_PlayerName;
 	const char *pNameFallback = Client()->PlayerName();
@@ -444,12 +443,8 @@ void CMenus::RenderSettingsPlayer(CUIRect MainView)
 
 void CMenus::RenderSettingsTee(CUIRect MainView)
 {
-	CUIRect Button, Label, Button2, Dummy, DummyLabel, SkinList, QuickSearch, QuickSearchClearButton, SkinDB, SkinPrefix, SkinPrefixLabel, DirectoryButton, RefreshButton;
-
 	static float s_ClSkinPrefix = 0.0f;
-
 	static bool s_InitSkinlist = true;
-	MainView.HSplitTop(10.0f, 0, &MainView);
 
 	char *Skin = g_Config.m_ClPlayerSkin;
 	int *UseCustomColor = &g_Config.m_ClPlayerUseCustomColor;
@@ -481,9 +476,173 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 		OwnSkinInfo.m_ColorBody = ColorRGBA(1.0f, 1.0f, 1.0f);
 		OwnSkinInfo.m_ColorFeet = ColorRGBA(1.0f, 1.0f, 1.0f);
 	}
-	OwnSkinInfo.m_Size = 50.0f * UI()->Scale();
+	OwnSkinInfo.m_Size = 42.0f * UI()->Scale();
 
-	MainView.HSplitTop(20.0f, &Label, &MainView);
+	CUIRect Left, Right, Label, Button, SkinList;
+
+	MainView.VSplitMid(&Left, &Right);
+	Left.HSplitTop(20.0f, &Label, &Left);
+	Left.HSplitTop(5.0f, 0x0, &Left);
+
+	char *pName = g_Config.m_PlayerName;
+	const char *pNameFallback = Client()->PlayerName();
+	float NameWidth = TextRender()->TextWidth(0, 20, pName, -1, -1);
+	
+	Label.VSplitLeft(NameWidth, &Label, &Button);
+	Button.VSplitLeft(5.0f, 0x0, &Button);
+	Button.VSplitLeft(20.0f, &Button, 0x0);
+
+	static bool Rename = false;
+	UI()->DoLabelScaled(&Label, pName, 20, -1);
+	TextRender()->SetCurFont(TextRender()->GetFont(TEXT_FONT_ICON_FONT));
+	TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
+	DoButton_Menu(&Rename, "\xEE\x8F\x89", Rename, &Button);
+	TextRender()->SetRenderFlags(0);
+	TextRender()->SetCurFont(NULL);
+
+	// skin selector
+	Right.HSplitTop(20.0f, 0, &SkinList);
+	static sorted_array<const CSkin *> s_paSkinList;
+	static int s_SkinCount = 0;
+	static float s_ScrollValue = 0.0f;
+	if(s_InitSkinlist || m_pClient->m_pSkins->Num() != s_SkinCount)
+	{
+		s_paSkinList.clear();
+		for(int i = 0; i < m_pClient->m_pSkins->Num(); ++i)
+		{
+			const CSkin *s = m_pClient->m_pSkins->Get(i);
+
+			// filter quick search
+			if(g_Config.m_ClSkinFilterString[0] != '\0' && !str_find_nocase(s->m_aName, g_Config.m_ClSkinFilterString))
+				continue;
+
+			// no special skins
+			if((s->m_aName[0] == 'x' && s->m_aName[1] == '_'))
+				continue;
+
+			// vanilla skins only
+			if(g_Config.m_ClVanillaSkinsOnly && !s->m_IsVanilla)
+				continue;
+
+			s_paSkinList.add_unsorted(s);
+		}
+		s_InitSkinlist = false;
+		s_SkinCount = m_pClient->m_pSkins->Num();
+	}
+
+	int OldSelected = -1;
+	UiDoListboxStart(&s_InitSkinlist, &SkinList, 50.0f, Localize("Skins"), "", s_paSkinList.size(), 5, OldSelected, s_ScrollValue);
+	for(int i = 0; i < s_paSkinList.size(); ++i)
+	{
+		const CSkin *s = s_paSkinList[i];
+		if(s == 0)
+			continue;
+
+		if(str_comp(s->m_aName, Skin) == 0)
+			OldSelected = i;
+
+		CListboxItem Item = UiDoListboxNextItem(s_paSkinList[i], OldSelected == i);
+		char aBuf[128];
+		if(Item.m_Visible)
+		{
+			CTeeRenderInfo Info = OwnSkinInfo;
+			Info.m_CustomColoredSkin = *UseCustomColor;
+
+			Info.m_OriginalRenderSkin = s->m_OriginalSkin;
+			Info.m_ColorableRenderSkin = s->m_ColorableSkin;
+			Info.m_SkinMetrics = s->m_Metrics;
+
+			RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, 0, vec2(1.0f, 0.0f), vec2(Item.m_Rect.x + Item.m_Rect.w / 2, Item.m_Rect.y + Item.m_Rect.h / 2 - 10));
+
+			Item.m_Rect.HSplitBottom(15.0f, 0x0, &Item.m_Rect);
+			Item.m_Rect.HSplitBottom(5.0f, &Item.m_Rect, 0x0);
+			str_format(aBuf, sizeof(aBuf), "%s", s->m_aName);
+			RenderTools()->UI()->DoLabelScaled(&Item.m_Rect, aBuf, 8.0f, -1, Item.m_Rect.w);
+			if(g_Config.m_Debug)
+			{
+				ColorRGBA BloodColor = *UseCustomColor ? color_cast<ColorRGBA>(ColorHSLA(*ColorBody)) : s->m_BloodColor;
+				Graphics()->TextureClear();
+				Graphics()->QuadsBegin();
+				Graphics()->SetColor(BloodColor.r, BloodColor.g, BloodColor.b, 1.0f);
+				IGraphics::CQuadItem QuadItem(Item.m_Rect.x, Item.m_Rect.y, 12.0f, 12.0f);
+				Graphics()->QuadsDrawTL(&QuadItem, 1);
+				Graphics()->QuadsEnd();
+			}
+		}
+	}
+
+	const int NewSelected = UiDoListboxEnd(&s_ScrollValue, 0);
+	if(OldSelected != NewSelected)
+	{
+		mem_copy(Skin, s_paSkinList[NewSelected]->m_aName, sizeof(g_Config.m_ClPlayerSkin));
+		SetNeedSendInfo();
+	}
+	/*
+	// render quick search
+	{
+		MainView.HSplitBottom(ms_ButtonHeight, &MainView, &QuickSearch);
+		QuickSearch.VSplitLeft(240.0f, &QuickSearch, &SkinDB);
+		QuickSearch.HSplitTop(5.0f, 0, &QuickSearch);
+		const char *pSearchLabel = "\xEE\xA2\xB6";
+		TextRender()->SetCurFont(TextRender()->GetFont(TEXT_FONT_ICON_FONT));
+		TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
+		UI()->DoLabelScaled(&QuickSearch, pSearchLabel, 14.0f, -1, -1, 0);
+		float wSearch = TextRender()->TextWidth(0, 14.0f, pSearchLabel, -1, -1.0f);
+		TextRender()->SetRenderFlags(0);
+		TextRender()->SetCurFont(NULL);
+		QuickSearch.VSplitLeft(wSearch, 0, &QuickSearch);
+		QuickSearch.VSplitLeft(5.0f, 0, &QuickSearch);
+		QuickSearch.VSplitLeft(QuickSearch.w - 15.0f, &QuickSearch, &QuickSearchClearButton);
+		static int s_ClearButton = 0;
+		static float Offset = 0.0f;
+		if(Input()->KeyPress(KEY_F) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL)))
+			UI()->SetActiveItem(&g_Config.m_ClSkinFilterString);
+		if(DoClearableEditBox(&g_Config.m_ClSkinFilterString, &s_ClearButton, &QuickSearch, g_Config.m_ClSkinFilterString, sizeof(g_Config.m_ClSkinFilterString), 14.0f, &Offset, false, CUI::CORNER_ALL, Localize("Search")))
+			s_InitSkinlist = true;
+	}
+
+	SkinDB.VSplitLeft(150.0f, &SkinDB, &DirectoryButton);
+	SkinDB.HSplitTop(5.0f, 0, &SkinDB);
+	if(DoButton_Menu(&SkinDB, Localize("Skin Database"), 0, &SkinDB))
+	{
+		if(!open_link("https://ddnet.tw/skins/"))
+		{
+			dbg_msg("menus", "couldn't open link");
+		}
+	}
+
+	DirectoryButton.HSplitTop(5.0f, 0, &DirectoryButton);
+	DirectoryButton.VSplitRight(175.0f, 0, &DirectoryButton);
+	DirectoryButton.VSplitRight(25.0f, &DirectoryButton, &RefreshButton);
+	DirectoryButton.VSplitRight(10.0f, &DirectoryButton, 0);
+	if(DoButton_Menu(&DirectoryButton, Localize("Skins directory"), 0, &DirectoryButton))
+	{
+		char aBuf[MAX_PATH_LENGTH];
+		char aBufFull[MAX_PATH_LENGTH + 7];
+		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "skins", aBuf, sizeof(aBuf));
+		Storage()->CreateFolder("skins", IStorage::TYPE_SAVE);
+		str_format(aBufFull, sizeof(aBufFull), "file://%s", aBuf);
+		if(!open_link(aBufFull))
+		{
+			dbg_msg("menus", "couldn't open link");
+		}
+	}
+
+	TextRender()->SetCurFont(TextRender()->GetFont(TEXT_FONT_ICON_FONT));
+	TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
+	if(DoButton_Menu(&RefreshButton, "\xEE\x97\x95", 0, &RefreshButton, NULL, 15, 5, 0, vec4(1.0f, 1.0f, 1.0f, 0.75f), vec4(1, 1, 1, 0.5f), 0))
+	{
+		m_pClient->m_pSkins->Refresh();
+		s_InitSkinlist = true;
+		if(Client()->State() >= IClient::STATE_ONLINE)
+		{
+			m_pClient->RefindSkins();
+		}
+	}
+	TextRender()->SetRenderFlags(0);
+	TextRender()->SetCurFont(NULL);
+	*/
+	/*
 	Label.VSplitLeft(280.0f, &Label, &Dummy);
 	Label.VSplitLeft(230.0f, &Label, 0);
 	Dummy.VSplitLeft(170.0f, &Dummy, &SkinPrefix);
@@ -598,149 +757,7 @@ void CMenus::RenderSettingsTee(CUIRect MainView)
 			}
 		}
 	}
-
-	// skin selector
-	MainView.HSplitTop(20.0f, 0, &MainView);
-	MainView.HSplitTop(230.0f, &SkinList, &MainView);
-	static sorted_array<const CSkin *> s_paSkinList;
-	static int s_SkinCount = 0;
-	static float s_ScrollValue = 0.0f;
-	if(s_InitSkinlist || m_pClient->m_pSkins->Num() != s_SkinCount)
-	{
-		s_paSkinList.clear();
-		for(int i = 0; i < m_pClient->m_pSkins->Num(); ++i)
-		{
-			const CSkin *s = m_pClient->m_pSkins->Get(i);
-
-			// filter quick search
-			if(g_Config.m_ClSkinFilterString[0] != '\0' && !str_find_nocase(s->m_aName, g_Config.m_ClSkinFilterString))
-				continue;
-
-			// no special skins
-			if((s->m_aName[0] == 'x' && s->m_aName[1] == '_'))
-				continue;
-
-			// vanilla skins only
-			if(g_Config.m_ClVanillaSkinsOnly && !s->m_IsVanilla)
-				continue;
-
-			s_paSkinList.add_unsorted(s);
-		}
-		s_InitSkinlist = false;
-		s_SkinCount = m_pClient->m_pSkins->Num();
-	}
-
-	int OldSelected = -1;
-	UiDoListboxStart(&s_InitSkinlist, &SkinList, 50.0f, Localize("Skins"), "", s_paSkinList.size(), 4, OldSelected, s_ScrollValue);
-	for(int i = 0; i < s_paSkinList.size(); ++i)
-	{
-		const CSkin *s = s_paSkinList[i];
-		if(s == 0)
-			continue;
-
-		if(str_comp(s->m_aName, Skin) == 0)
-			OldSelected = i;
-
-		CListboxItem Item = UiDoListboxNextItem(s_paSkinList[i], OldSelected == i);
-		char aBuf[128];
-		if(Item.m_Visible)
-		{
-			CTeeRenderInfo Info = OwnSkinInfo;
-			Info.m_CustomColoredSkin = *UseCustomColor;
-
-			Info.m_OriginalRenderSkin = s->m_OriginalSkin;
-			Info.m_ColorableRenderSkin = s->m_ColorableSkin;
-			Info.m_SkinMetrics = s->m_Metrics;
-
-			Item.m_Rect.HSplitTop(5.0f, 0, &Item.m_Rect); // some margin from the top
-			RenderTools()->RenderTee(CAnimState::GetIdle(), &Info, 0, vec2(1.0f, 0.0f), vec2(Item.m_Rect.x + 30, Item.m_Rect.y + Item.m_Rect.h / 2));
-
-			Item.m_Rect.VSplitLeft(60.0f, 0, &Item.m_Rect);
-			str_format(aBuf, sizeof(aBuf), "%s", s->m_aName);
-			RenderTools()->UI()->DoLabelScaled(&Item.m_Rect, aBuf, 12.0f, -1, Item.m_Rect.w);
-			if(g_Config.m_Debug)
-			{
-				ColorRGBA BloodColor = *UseCustomColor ? color_cast<ColorRGBA>(ColorHSLA(*ColorBody)) : s->m_BloodColor;
-				Graphics()->TextureClear();
-				Graphics()->QuadsBegin();
-				Graphics()->SetColor(BloodColor.r, BloodColor.g, BloodColor.b, 1.0f);
-				IGraphics::CQuadItem QuadItem(Item.m_Rect.x, Item.m_Rect.y, 12.0f, 12.0f);
-				Graphics()->QuadsDrawTL(&QuadItem, 1);
-				Graphics()->QuadsEnd();
-			}
-		}
-	}
-
-	const int NewSelected = UiDoListboxEnd(&s_ScrollValue, 0);
-	if(OldSelected != NewSelected)
-	{
-		mem_copy(Skin, s_paSkinList[NewSelected]->m_aName, sizeof(g_Config.m_ClPlayerSkin));
-		SetNeedSendInfo();
-	}
-
-	// render quick search
-	{
-		MainView.HSplitBottom(ms_ButtonHeight, &MainView, &QuickSearch);
-		QuickSearch.VSplitLeft(240.0f, &QuickSearch, &SkinDB);
-		QuickSearch.HSplitTop(5.0f, 0, &QuickSearch);
-		const char *pSearchLabel = "\xEE\xA2\xB6";
-		TextRender()->SetCurFont(TextRender()->GetFont(TEXT_FONT_ICON_FONT));
-		TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
-		UI()->DoLabelScaled(&QuickSearch, pSearchLabel, 14.0f, -1, -1, 0);
-		float wSearch = TextRender()->TextWidth(0, 14.0f, pSearchLabel, -1, -1.0f);
-		TextRender()->SetRenderFlags(0);
-		TextRender()->SetCurFont(NULL);
-		QuickSearch.VSplitLeft(wSearch, 0, &QuickSearch);
-		QuickSearch.VSplitLeft(5.0f, 0, &QuickSearch);
-		QuickSearch.VSplitLeft(QuickSearch.w - 15.0f, &QuickSearch, &QuickSearchClearButton);
-		static int s_ClearButton = 0;
-		static float Offset = 0.0f;
-		if(Input()->KeyPress(KEY_F) && (Input()->KeyIsPressed(KEY_LCTRL) || Input()->KeyIsPressed(KEY_RCTRL)))
-			UI()->SetActiveItem(&g_Config.m_ClSkinFilterString);
-		if(DoClearableEditBox(&g_Config.m_ClSkinFilterString, &s_ClearButton, &QuickSearch, g_Config.m_ClSkinFilterString, sizeof(g_Config.m_ClSkinFilterString), 14.0f, &Offset, false, CUI::CORNER_ALL, Localize("Search")))
-			s_InitSkinlist = true;
-	}
-
-	SkinDB.VSplitLeft(150.0f, &SkinDB, &DirectoryButton);
-	SkinDB.HSplitTop(5.0f, 0, &SkinDB);
-	if(DoButton_Menu(&SkinDB, Localize("Skin Database"), 0, &SkinDB))
-	{
-		if(!open_link("https://ddnet.tw/skins/"))
-		{
-			dbg_msg("menus", "couldn't open link");
-		}
-	}
-
-	DirectoryButton.HSplitTop(5.0f, 0, &DirectoryButton);
-	DirectoryButton.VSplitRight(175.0f, 0, &DirectoryButton);
-	DirectoryButton.VSplitRight(25.0f, &DirectoryButton, &RefreshButton);
-	DirectoryButton.VSplitRight(10.0f, &DirectoryButton, 0);
-	if(DoButton_Menu(&DirectoryButton, Localize("Skins directory"), 0, &DirectoryButton))
-	{
-		char aBuf[MAX_PATH_LENGTH];
-		char aBufFull[MAX_PATH_LENGTH + 7];
-		Storage()->GetCompletePath(IStorage::TYPE_SAVE, "skins", aBuf, sizeof(aBuf));
-		Storage()->CreateFolder("skins", IStorage::TYPE_SAVE);
-		str_format(aBufFull, sizeof(aBufFull), "file://%s", aBuf);
-		if(!open_link(aBufFull))
-		{
-			dbg_msg("menus", "couldn't open link");
-		}
-	}
-
-	TextRender()->SetCurFont(TextRender()->GetFont(TEXT_FONT_ICON_FONT));
-	TextRender()->SetRenderFlags(ETextRenderFlags::TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH | ETextRenderFlags::TEXT_RENDER_FLAG_NO_X_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_Y_BEARING | ETextRenderFlags::TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT | ETextRenderFlags::TEXT_RENDER_FLAG_NO_OVERSIZE);
-	if(DoButton_Menu(&RefreshButton, "\xEE\x97\x95", 0, &RefreshButton, NULL, 15, 5, 0, vec4(1.0f, 1.0f, 1.0f, 0.75f), vec4(1, 1, 1, 0.5f), 0))
-	{
-		m_pClient->m_pSkins->Refresh();
-		s_InitSkinlist = true;
-		if(Client()->State() >= IClient::STATE_ONLINE)
-		{
-			m_pClient->RefindSkins();
-		}
-	}
-	TextRender()->SetRenderFlags(0);
-	TextRender()->SetCurFont(NULL);
+	*/
 }
 
 typedef void (*pfnAssignFuncCallback)(CConfiguration *pConfig, int Value);
