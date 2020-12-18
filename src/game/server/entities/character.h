@@ -94,7 +94,6 @@ public:
 
 private:
 	int m_CID;
-	int m_Team;
 	bool m_Alive;
 	bool m_Paused;
 	bool m_Afk;
@@ -203,13 +202,14 @@ public:
 	bool CanCollide(int ClientID);
 	bool SameTeam(int ClientID);
 	int GetTeam() const { return m_Team; };
-	int GetClientVersion() { return GameServer()->GetClientVersion(m_CID); };
+	int GetClientVersion();
 	bool m_Super;
 	bool m_SuperJump;
 	bool m_Jetpack;
 	bool m_NinjaJetpack;
 	int m_TeamBeforeSuper;
 	int m_FreezeTime;
+	int m_Team;
 	int m_FreezeTick;
 	bool m_FrozenLastTick;
 	bool m_DeepFreeze;

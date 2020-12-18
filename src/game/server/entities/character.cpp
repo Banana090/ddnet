@@ -1320,6 +1320,11 @@ int CCharacter::NetworkClipped(int SnappingClient, vec2 CheckPos)
 
 // DDRace
 
+int CCharacter::GetClientVersion()
+{
+	return GameServer()->GetClientVersion(m_CID);
+}
+
 bool CCharacter::CanCollide(int ClientID)
 {
 	return Teams()->m_Core.CanCollide(GetCID(), ClientID);
