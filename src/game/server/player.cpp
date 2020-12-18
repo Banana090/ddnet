@@ -608,7 +608,7 @@ CCharacter *CPlayer::ForceSpawn(vec2 Pos)
 {
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
-	m_pCharacter->Spawn(this, Pos);
+	m_pCharacter->Spawn(GetCID(), Pos);
 	m_Team = 0;
 	return m_pCharacter;
 }
@@ -725,7 +725,7 @@ void CPlayer::TryRespawn()
 	m_WeakHookSpawn = false;
 	m_Spawning = false;
 	m_pCharacter = new(m_ClientID) CCharacter(&GameServer()->m_World);
-	m_pCharacter->Spawn(this, SpawnPos);
+	m_pCharacter->Spawn(GetCID(), SpawnPos);
 	GameServer()->CreatePlayerSpawn(SpawnPos, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
 
 	if(g_Config.m_SvTeam == 3)
@@ -830,7 +830,7 @@ void CPlayer::ProcessPause()
 
 	if(m_Paused == PAUSE_SPEC && !m_pCharacter->IsPaused() && m_pCharacter->IsGrounded() && m_pCharacter->m_Pos == m_pCharacter->m_PrevPos)
 	{
-		m_pCharacter->Pause(true);
+		m_pCharacter->Pause(PAUSE_SPEC, true);
 		GameServer()->CreateDeath(m_pCharacter->m_Pos, m_ClientID, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
 		GameServer()->CreateSound(m_pCharacter->m_Pos, SOUND_PLAYER_DIE, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
 	}
@@ -859,7 +859,7 @@ int CPlayer::Pause(int State, bool Force)
 					GameServer()->SendChatTarget(m_ClientID, "Can't /spec that quickly.");
 					return m_Paused; // Do not update state. Do not collect $200
 				}
-				m_pCharacter->Pause(false);
+				m_pCharacter->Pause(PAUSE_NONE, true);
 				GameServer()->CreatePlayerSpawn(m_pCharacter->m_Pos, m_pCharacter->Teams()->TeamMask(m_pCharacter->Team(), -1, m_ClientID));
 			}
 			// fall-thru

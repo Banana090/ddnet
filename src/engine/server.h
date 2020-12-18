@@ -10,7 +10,8 @@
 
 #include "kernel.h"
 #include "message.h"
-#include <engine/shared/protocol.h>
+
+#include <game/generated/server_data.h>
 #include <game/generated/protocol.h>
 #include <game/generated/protocol7.h>
 #include <game/generated/protocolglue.h>

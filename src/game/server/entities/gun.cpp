@@ -70,7 +70,7 @@ void CGun::Fire()
 	for(int i = 0; i < Num; i++)
 	{
 		CCharacter *Target = Ents[i];
-		if(Target->IsAlive() && Target->Teams()->m_Core.GetSolo(Target->GetPlayer()->GetCID()))
+		if(Target->IsAlive() && Target->Teams()->m_Core.GetSolo(Target->GetCID()))
 		{
 			if(IdInTeam[Target->Team()] != i)
 			{

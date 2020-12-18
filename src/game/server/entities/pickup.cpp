@@ -104,8 +104,7 @@ void CPickup::Tick()
 					else if(m_Subtype == WEAPON_LASER)
 						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN, pChr->Teams()->TeamMask(pChr->Team()));
 
-					if(pChr->GetPlayer())
-						GameServer()->SendWeaponPickup(pChr->GetPlayer()->GetCID(), m_Subtype);
+					GameServer()->SendWeaponPickup(pChr->GetCID(), m_Subtype);
 				}
 				break;
 

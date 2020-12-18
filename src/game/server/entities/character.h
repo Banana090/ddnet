@@ -73,7 +73,7 @@ public:
 	void Die(int Killer, int Weapon);
 	bool TakeDamage(vec2 Force, int Dmg, int From, int Weapon);
 
-	bool Spawn(class CPlayer *pPlayer, vec2 Pos);
+	bool Spawn(int CID, vec2 Pos);
 	bool Remove();
 
 	bool IncreaseHealth(int Amount);
@@ -90,14 +90,21 @@ public:
 	int NeededFaketuning() { return m_NeededFaketuning; }
 	bool IsAlive() const { return m_Alive; }
 	bool IsPaused() const { return m_Paused; }
-	class CPlayer *GetPlayer() { return m_pPlayer; }
+	int GetCID() { return m_CID; }
 
 private:
-	// player controlling this character
-	class CPlayer *m_pPlayer;
-
+	int m_CID;
+	int m_Team;
 	bool m_Alive;
 	bool m_Paused;
+	bool m_Afk;
+	int m_DefEmoteReset;
+	int m_DefEmote;
+	int m_TimerType;
+	int m_PreviousDieTick;
+	int m_DieTick;
+	int m_NotEligibleForFinish;
+	int m_PlayerFlags;
 	int m_NeededFaketuning;
 
 	// weapon info
@@ -186,7 +193,7 @@ private:
 public:
 	CGameTeams *Teams();
 	void FillAntibot(CAntibotCharacterData *pData);
-	void Pause(bool Pause);
+	void Pause(int State, bool Force);
 	bool Freeze(int Time);
 	bool Freeze();
 	bool UnFreeze();
@@ -195,6 +202,8 @@ public:
 	int Team();
 	bool CanCollide(int ClientID);
 	bool SameTeam(int ClientID);
+	int GetTeam() const { return m_Team; };
+	int GetClientVersion() { return GameServer()->GetClientVersion(m_CID); };
 	bool m_Super;
 	bool m_SuperJump;
 	bool m_Jetpack;
@@ -206,6 +215,9 @@ public:
 	bool m_DeepFreeze;
 	bool m_EndlessHook;
 	bool m_FreezeHammer;
+
+	int m_ShowOthers;
+
 	enum
 	{
 		HIT_ALL = 0,

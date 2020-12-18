@@ -70,7 +70,7 @@ void CDragger::Move()
 				Id = i;
 			}
 
-			if(!Temp->Teams()->m_Core.GetSolo(Temp->GetPlayer()->GetCID()))
+			if(!Temp->Teams()->m_Core.GetSolo(Temp->GetCID()))
 				m_SoloEnts[i] = 0;
 		}
 		else
@@ -212,7 +212,7 @@ void CDragger::Snap(int SnappingClient)
 				continue;
 		}
 
-		if(Char && Char->IsAlive() && Target && Target->IsAlive() && Target->GetPlayer()->GetCID() != Char->GetPlayer()->GetCID() && (Char->GetPlayer()->m_ShowOthers == 0 || (Char->GetPlayer()->m_ShowOthers == 2 && (Char->Teams()->m_Core.GetSolo(SnappingClient) || Char->Teams()->m_Core.GetSolo(Target->GetPlayer()->GetCID())))))
+		if(Char && Char->IsAlive() && Target && Target->IsAlive() && Target->GetCID() != Char->GetCID() && (Char->m_ShowOthers == 0 || (Char->m_ShowOthers == 2 && (Char->Teams()->m_Core.GetSolo(SnappingClient) || Char->Teams()->m_Core.GetSolo(Target->GetCID())))))
 		{
 			continue;
 		}

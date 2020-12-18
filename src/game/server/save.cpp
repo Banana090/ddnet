@@ -17,11 +17,11 @@ CSaveTee::~CSaveTee()
 
 void CSaveTee::save(CCharacter *pChr)
 {
-	m_ClientID = pChr->m_pPlayer->GetCID();
-	str_copy(m_aName, pChr->m_pPlayer->Server()->ClientName(m_ClientID), sizeof(m_aName));
+	m_ClientID = pChr->GetCID();
+	str_copy(m_aName, pChr->Server()->ClientName(m_ClientID), sizeof(m_aName));
 
 	m_Alive = pChr->m_Alive;
-	m_Paused = abs(pChr->m_pPlayer->IsPaused());
+	m_Paused = abs(pChr->IsPaused());
 	m_NeededFaketuning = pChr->m_NeededFaketuning;
 
 	m_TeeFinished = pChr->Teams()->TeeFinished(m_ClientID);
@@ -71,7 +71,7 @@ void CSaveTee::save(CCharacter *pChr)
 	for(int i = 0; i < 25; i++)
 		m_aCpCurrent[i] = pChr->m_CpCurrent[i];
 
-	m_NotEligibleForFinish = pChr->m_pPlayer->m_NotEligibleForFinish;
+	m_NotEligibleForFinish = pChr->m_NotEligibleForFinish;
 
 	m_HasTelegunGun = pChr->m_Core.m_HasTelegunGun;
 	m_HasTelegunGrenade = pChr->m_Core.m_HasTelegunGrenade;
@@ -108,13 +108,13 @@ void CSaveTee::save(CCharacter *pChr)
 
 void CSaveTee::load(CCharacter *pChr, int Team)
 {
-	pChr->m_pPlayer->Pause(m_Paused, true);
+	pChr->Pause(m_Paused, true);
 
 	pChr->m_Alive = m_Alive;
 	pChr->m_NeededFaketuning = m_NeededFaketuning;
 
-	pChr->Teams()->SetForceCharacterTeam(pChr->m_pPlayer->GetCID(), Team);
-	pChr->Teams()->SetFinished(pChr->m_pPlayer->GetCID(), m_TeeFinished);
+	pChr->Teams()->SetForceCharacterTeam(pChr->GetCID(), Team);
+	pChr->Teams()->SetFinished(pChr->GetCID(), m_TeeFinished);
 
 	for(int i = 0; i < NUM_WEAPONS; i++)
 	{
@@ -159,7 +159,7 @@ void CSaveTee::load(CCharacter *pChr, int Team)
 	for(int i = 0; i < 25; i++)
 		pChr->m_CpCurrent[i] = m_aCpCurrent[i];
 
-	pChr->m_pPlayer->m_NotEligibleForFinish = pChr->m_pPlayer->m_NotEligibleForFinish || m_NotEligibleForFinish;
+	pChr->m_NotEligibleForFinish = pChr->m_NotEligibleForFinish || m_NotEligibleForFinish;
 
 	pChr->m_Core.m_HasTelegunGun = m_HasTelegunGun;
 	pChr->m_Core.m_HasTelegunLaser = m_HasTelegunLaser;
@@ -435,7 +435,7 @@ int CSaveTeam::save(int Team)
 		CCharacter *p = (CCharacter *)m_pController->GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER);
 		for(; p; p = (CCharacter *)p->TypeNext())
 		{
-			if(Teams->m_Core.Team(p->GetPlayer()->GetCID()) != Team)
+			if(Teams->m_Core.Team(p->GetCID()) != Team)
 				continue;
 			if(m_MembersCount == j)
 				return 3;
