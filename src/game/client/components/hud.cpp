@@ -661,7 +661,7 @@ void CHud::PrepareHealthAmoQuads()
 	m_HudQuadContainerIndex = Graphics()->CreateQuadContainer();
 
 	float x = 5;
-	float y = 5;
+	float y = 7.3f;
 	IGraphics::CQuadItem Array[10];
 
 	for(int i = 0; i < NUM_WEAPONS; ++i)
@@ -692,10 +692,36 @@ void CHud::PrepareHealthAmoQuads()
 
 	// health
 	Graphics()->QuadsSetSubset(0, 0, 1, 1);
-	for(int i = 0; i < 10; ++i)
-		Array[i] = IGraphics::CQuadItem(x + i * 12, y, 10, 10);
-	Graphics()->QuadContainerAddQuads(m_HudQuadContainerIndex, Array, 10);
+	Graphics()->QuadsSetRotation(pi / -4.0f);
+	constexpr float p = -5.0f;
+	constexpr float size = 18.0f;
+	constexpr float sizeBig = 22.0f;
+	float hammer_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_HAMMER_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_HAMMER_BODY].m_W;
+	float gun_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_GUN_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_GUN_BODY].m_W;
+	float sg_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_SHOTGUN_BODY].m_W;
+	float gren_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_GRENADE_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_GRENADE_BODY].m_W;
+	float las_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_LASER_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_LASER_BODY].m_W;
+	float ninj_aspect = (float)g_pData->m_aSprites[SPRITE_WEAPON_NINJA_BODY].m_H / g_pData->m_aSprites[SPRITE_WEAPON_NINJA_BODY].m_W;
+	float width = 0;
+	Array[0] = IGraphics::CQuadItem(x + width, y, (size - 2), (size - 2) * hammer_aspect);
+	width += Array[0].m_Width + 3;
+	Array[1] = IGraphics::CQuadItem(x + width, y, size, size * gun_aspect);
+	width += Array[1].m_Width + 0;									  
+	Array[2] = IGraphics::CQuadItem(x + width, y, sizeBig, sizeBig * sg_aspect);
+	width += Array[2].m_Width + p;									  
+	Array[3] = IGraphics::CQuadItem(x + width, y, sizeBig, sizeBig * gren_aspect);
+	width += Array[3].m_Width + p;									  
+	Array[4] = IGraphics::CQuadItem(x + width, y, sizeBig, sizeBig * las_aspect);
+	width += Array[4].m_Width + p;									  
+	Array[5] = IGraphics::CQuadItem(x + width, y, sizeBig, sizeBig * ninj_aspect);
+	width += 12 + p;
+	Array[6] = IGraphics::CQuadItem(x + width, y, 12, 12);
+	Array[7] = IGraphics::CQuadItem(x + p * 12, y, 12, 12);
+	Array[8] = IGraphics::CQuadItem(x + p * 12, y, 12, 12);
+	Array[9] = IGraphics::CQuadItem(x + p * 12, y, 12, 12);
 
+	Graphics()->QuadContainerAddQuads(m_HudQuadContainerIndex, Array, 10);
+	Graphics()->QuadsSetRotation(0.0f);
 	// 0.7
 	for(int i = 0; i < 10; ++i)
 		Array[i] = IGraphics::CQuadItem(x + i * 12, y, 12, 12);
@@ -746,6 +772,14 @@ void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
 	int CurWeapon = pCharacter->m_Weapon % NUM_WEAPONS;
 	int QuadOffset = (CurWeapon * 2) * 10 + QuadOffsetSixup;
 
+	QuadOffset = NUM_WEAPONS * 10 * 2 + QuadOffsetSixup;
+	for(int i = 0; i < NUM_WEAPONS; i++)
+	{
+		int index = QuadOffset + i;
+		Graphics()->TextureSet(GameClient()->m_GameSkin.m_SpriteWeapons[i]);
+		Graphics()->RenderQuadContainer(m_HudQuadContainerIndex, index, 1);
+	}
+	/*
 	if(GameClient()->m_GameSkin.m_SpriteWeaponProjectiles[CurWeapon] != -1)
 	{
 		Graphics()->TextureSet(GameClient()->m_GameSkin.m_SpriteWeaponProjectiles[CurWeapon]);
@@ -774,6 +808,7 @@ void CHud::RenderHealthAndAmmo(const CNetObj_Character *pCharacter)
 	QuadOffset += 10 * 2 + minimum(pCharacter->m_Armor, 10);
 	if(minimum(pCharacter->m_Armor, 10) < 10)
 		Graphics()->RenderQuadContainer(m_HudQuadContainerIndex, QuadOffset, 10 - minimum(pCharacter->m_Armor, 10));
+		*/
 }
 
 void CHud::RenderSpectatorHud()
